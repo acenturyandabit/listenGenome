@@ -5,6 +5,7 @@
     <h2>Paste a genome below.</h2>
     <h3> You can go to <a href="https://www.ncbi.nlm.nih.gov/nuccore/">https://www.ncbi.nlm.nih.gov/nuccore/</a>to find
         the genome of all sorts of things, like humans!</h3>
+        <p class="preload">The genome for COVID-19 has been preloaded for your convenience. Hope it's not catchy!</p>
     <textarea placeholder="This will remove any non-ACTG text automatically as well.">
         cttcccaggt aacaaaccaa ccaactttcg atctcttgta gatctgttct ctaaacgaac
         61 tttaaaatct gtgtggctgt cactcggctg catgcttagt gcactcacgc agtataatta
@@ -503,11 +504,12 @@
      29641 taactttaat ctcacatagc aatctttaat cagtgtgtaa cattagggag gacttgaaag
      29701 agccaccaca ttttcaccga ggccacgcgg agtacgatcg agtgtacagt gaacaatgct
      29761 agggagagct gcctatatgg aagagcccta atgtgtaaaa ttaattttag t
-    </textarea>
+    </textarea><br>
     <button>Play</button>
     <script>
         if (!window.location.href.includes("covid")){
             document.querySelector("textarea").value="";
+            document.querySelector(".preload").remove();
         }
         let positions = "ACTG";
         function createParams(params, letters) {
