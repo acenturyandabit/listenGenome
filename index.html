@@ -1,95 +1,124 @@
 <html>
+
 <body>
     <h1>Genome player</h1>
     <h2>Paste a genome below.</h2>
-    <h3> You can go to <a href="https://www.ncbi.nlm.nih.gov/nuccore/">https://www.ncbi.nlm.nih.gov/nuccore/</a>to find the genome of all sorts of things, like humans!</h3>
+    <h3> You can go to <a href="https://www.ncbi.nlm.nih.gov/nuccore/">https://www.ncbi.nlm.nih.gov/nuccore/</a>to find
+        the genome of all sorts of things, like humans!</h3>
     <textarea placeholder="This will remove any non-ACTG text automatically as well.">
-        
+
     </textarea>
     <button>Play</button>
     <script>
-        let positions="ACTG";
-        function createParams(params, letters){
+        let positions = "ACTG";
+        function createParams(params, letters) {
             delete params.f;
-            params.mstart=params.start;
-            let noteIndex=positions.indexOf(letters[0])*4+positions.indexOf(letters[1]);
-            switch (noteIndex){
+            params.mstart = params.start;
+            let noteIndex = positions.indexOf(letters[0]) * 4 + positions.indexOf(letters[1]);
+            switch (noteIndex) {
                 case 15:
-                    params.baseline++;
+                if (params.baseline<24)params.baseline++;
                     break;
                 case 14:
-                    params.baseline--;
+                    if (params.baseline>-24)params.baseline --;
                     break;
-                case 13: 
-                    params.baseline+=12;
+                case 13:
+                    if (params.baseline<24)params.baseline += 2;
                     break;
                 case 12:
-                    params.baseline-=12;
+                    if (params.baseline>-24)params.baseline -= 2;
                     break;
                 default:
-                    params.f=440*Math.pow(2,(noteIndex+params.baseline)/12);
+                    params.f = 440 * Math.pow(2, (noteIndex + params.baseline) / 12);
                     // timings
-                    switch (letters[2]){
+                    switch (letters[2]) {
                         case 'A':
-                            params.start+=0.25;
-                            params.end=params.mstart+0.25;
-                            break;
                         case 'C':
-                            params.start+=0.125;
-                            params.end=params.mstart+0.125;
+                            params.start += Math.floor(0.25 * 440) / 440;
+                            params.end = params.mstart + Math.floor(0.25 * 440) / 440;
                             break;
                         case 'G':
-                            params.start+=0.125;
-                            params.end=params.mstart+0.25;
+                        case 'T':
+                            params.start += Math.floor(0.125 * 440) / 440;
+                            params.end = params.mstart + Math.floor(0.125 * 440) / 440;
+                            break;
+                            /*
+                        case 'G':
+                            params.start += Math.floor(0.125 * 440) / 440;
+                            params.end = params.mstart + Math.floor(0.25 * 440) / 440;
                             break;
                         case 'T':
-                            params.start+=0.25;
-                            params.end=params.mstart+0.5;
+                            params.start += Math.floor(0.25 * 440) / 440;
+                            params.end = params.mstart + Math.floor(0.5 * 440) / 440;
                             break;
+                            */
                     }
                     break;
             }
             return params;
         }
 
-        let isPlaying=false;
+        let isPlaying = false;
         let auctx;
-        document.querySelector("button").addEventListener("click",(e)=>{
-            if (isPlaying){
-                isPlaying=false;
-                document.querySelector("button").innerText="Play";
+        document.querySelector("button").addEventListener("click", (e) => {
+            if (isPlaying) {
+                isPlaying = false;
+                document.querySelector("button").innerText = "Play";
                 auctx.close();
-            }else{
-                isPlaying=false;
-                document.querySelector("button").innerText="Stop";
-                auctx=new AudioContext();
-                let buffer=document.querySelector("textarea").value;
-                buffer=buffer.toUpperCase();
-                buffer=buffer.replace(/[^ACTG]/g,"");
-                let threeletter=/.../g;
-                let bArr=[];
-                while (res=threeletter.exec(buffer)){
+            } else {
+                isPlaying = true;
+                document.querySelector("button").innerText = "Stop";
+                auctx = new AudioContext();
+                let buffer = document.querySelector("textarea").value;
+                buffer = buffer.toUpperCase();
+                buffer = buffer.replace(/[^ACTG]/g, "");
+                let threeletter = /.../g;
+                let bArr = [];
+                while (res = threeletter.exec(buffer)) {
                     bArr.push(res[0]);
                 }
-                let params={mstart:0,start:auctx.currentTime+0.1,baseline:0};
+                let zerotime = auctx.currentTime + 1;
+                let params = { mstart: 0, start: zerotime, baseline: 0 };
                 /*
                     start: when should the next node start. set by past for me.
                     end: when should note end. set by me for me.
                     baseline: the base frequency
                     f: what note to play. set by me for me.
                 */
-                bArr=bArr.map(i=>{
-                    params=createParams(params,i);
-                    if (params.f){
-                        let ON = new OscillatorNode(auctx,{frequency:params.f,type:'sine'});
+                let tts = zerotime;
+                bArr = bArr.map((i, ii) => {
+                    params = createParams(params, i);
+                    if (params.f) {
+                        let cprm = JSON.parse(JSON.stringify(params));
+                        setTimeout(() => {
+                            let GN = auctx.createGain();
+                            let ON = new OscillatorNode(auctx, { frequency: cprm.f, type: 'sine' });
+                            ON.start(cprm.mstart - 0.1);
+                            GN.gain.setValueAtTime(0, tts);
+                            ON.frequency.setValueAtTime(cprm.f, tts);
+                            ON.connect(GN);
+                            GN.connect(auctx.destination);
+                            //console.log(params);
+                            GN.gain.setValueAtTime(0, cprm.mstart-0.05);
+                            GN.gain.exponentialRampToValueAtTime(0.5, cprm.mstart);
+                            GN.gain.exponentialRampToValueAtTime(0.01, cprm.end);
+                            GN.gain.setValueAtTime(0, cprm.end+0.01);
+                            ON.stop(cprm.end + 0.1);
+                        },params.mstart* 500);
+
+                        //GN.gain.setValueAtTime(0, params.end);
+
+                        /*
                         ON.start(params.mstart);
+                        ON.frequency.setValueAtTime(params.f,params.mstart-1);
                         ON.stop(params.end);
                         ON.connect(auctx.destination);
+                        */
                     }
                 })
             }
         })
     </script>
 </body>
-</html>
 
+</html>
